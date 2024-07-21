@@ -4,37 +4,36 @@ import (
 	"bufio" // import bufio package
 	"fmt"
 	"os"
+	"strings"
 )
 
 func startRepl() {
 	cliPrompt := "Pokedex >"
-	userInput := bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(os.Stdin)
 
 	// we need to create an infinate loop to keep our prompt running
 	for {
 		fmt.Print(cliPrompt)
+		//cleaned := cleanInput()
 
 		//  To read input from the user, we need to use bufio.NewScanner. We'll scan the input, parse it, and then execute the corresponding command.
 		// wait for user input
-		if userInput.Scan() {
-			//get the input text
-			input := userInput.Text()
+		scanner.Scan()
+		text := scanner.Text()
 
-			// we have our options avalible for the user
-			if input == "exit" {
-				fmt.Println("Goodbye!")
-				break
-			} else if input == "help" {
-				fmt.Println("Welcome to the Pokedex!")
-				fmt.Println("Usage:")
-				fmt.Println("help: Displays a help message")
-				fmt.Println("exit: Exit the Pokedex")
-			} else {
-				fmt.Println("unknown command: ", input)
-			}
+		cleaned := cleanInput(text)
 
+		// basically if we recieve no text continue the loop right back at the top
+		if len(cleaned) == 0 {
+			continue
 		}
 
 	}
 
+}
+
+func cleanInput(str string) []string { // returns a slice of strings
+	lowered := strings.ToLower(str)
+	words := strings.Fields(lowered)
+	return words
 }
