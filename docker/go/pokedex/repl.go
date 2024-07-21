@@ -6,8 +6,7 @@ import (
 	"os"
 )
 
-func main() {
-
+func startRepl() {
 	cliPrompt := "Pokedex >"
 	userInput := bufio.NewScanner(os.Stdin)
 
@@ -38,7 +37,4 @@ func main() {
 
 	}
 
-	// next piece: getting user input and handling commands.
-
-	//  To read input from the user, we need to use bufio.NewScanner. We'll scan the input, parse it, and then execute the corresponding command.
 }
