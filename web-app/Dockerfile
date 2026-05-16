@@ -10,8 +10,8 @@ FROM alpine:latest
 WORKDIR /app
 # Install security certificates (often needed for HTTPS/APIs)
 RUN apk --no-cache add ca-certificates
-COPY --from=build_stage /app/server .
-COPY --from=build_stage /app/templates/ ./templates/
+COPY --from=build_stage server .
+COPY --from=build_stage templates/ ./templates/
 
 # Ensure our server binary is executable
 RUN chmod +x ./server
