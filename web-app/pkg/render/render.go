@@ -1,14 +1,28 @@
 package render
 
 import (
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
+
+	"github.com/larry-99/webGo/pkg/config"
+	"github.com/larry-99/webGo/pkg/models"
 )
 
 // This var is a template cache to make accessing our templates quicker.
 var templatesCache = make(map[string]*template.Template)
+var app *config.AppConfig
+
+
+func AddDefaultData(tempData *models.TemplateData) *models.TemplateData {
+	return tempData
+}
+
+// NewTemplates() sets the config for the template package
+func NewTemplates(conf *config.AppConfig) {
+	app = conf
+}
 
 /*
 function signature: renderTemplate(write http.ResponseWriter, tmpl string)
@@ -17,58 +31,62 @@ function signature: renderTemplate(write http.ResponseWriter, tmpl string)
 
 @Params: tmpl -> this takes a .tmpl file we want to parse and write to the browser window
 */
-func RenderTemplate(write http.ResponseWriter, tmpl string) {
-	// Parsing our template files
-	parsedTemplate, err := template.ParseFiles("./templates/"+tmpl, "./templates/base.layout.tmpl")
-	//err := parsedTemplate.Execute(w, nil)
+func RenderTemplate(write http.ResponseWriter, tmpl string, tempData *models.TemplateData) {
+	// get the template cache from the app config struct
+	tmplCache := app.TemplateCache
 
-	// Writting our response writer to our template
-	parsedTemplate.Execute(write, nil)
-	if err != nil {
-		fmt.Println("Error parsing template:", err)
-		return
+	// get requested template from cache
+	temp, ok := tmplCache[tmpl]
+	if !ok {
+		log.Fatal("Could not get template ")
 	}
-}
-func createTempate(temp string) error {
 
-	// This will store a slice of our templates location
-	templates := []string{
-		fmt.Sprintf("./templates/%s", temp),
-		"./templates/base.layout.tmpl",
-	}
-	// Parse the templates from our slice
-	//This will take each entry from our slice of strings and put them in as individual strings
-	parse, err := template.ParseFiles(templates...)
-	if err != nil {
-		return err
-	}
-	// Add our 'parse' template to our map
-	templatesCache[temp] = parse
-	return nil
+	// Return a default page
+	tempData = AddDefaultData(tempData)
+
+	// render the template
+	temp.Execute(write, tempData)
 }
 
-func renderedTemplateCheck(write http.ResponseWriter, temp string) {
-	// checking to see if we have any templates in our cache
-	var tmpl *template.Template
-	var err error
+func CreateTempateCache() (map[string]*template.Template, error) {
 
-	// this would either set our inMap var to true or false, i.e true means the template is in the cache /false then template is not in the cache
-	_, inMap := templatesCache[temp]
+	// no need to use make(), just use {} when creating maps
+	myCache := map[string]*template.Template{}
 
-	// if its false create a template
-	if !inMap {
-		err = createTempate(temp)
+	// get all the files names *.page.tmpl
+	pages, err := filepath.Glob("./templates/*.page.tmpl")
+	if err != nil {
+		return myCache, err
+	}
+
+	// range theough the pages since is returns a slice of strings
+	for _, page := range pages {
+		//page just holds the full path
+		name := filepath.Base(page)
+
+		templateSet, err := template.New(name).ParseFiles(page)
 		if err != nil {
-			log.Println(err)
+			return myCache, err
 		}
-	} else {
-		// then we already have the cache in the template
-		log.Println("Using cached template")
+
+		// looking for layouts.tmpl
+		layoutMatches, err := filepath.Glob("./templates/*.layout.tmpl")
+		if err != nil {
+			return myCache, err
+		}
+
+		// deal with the templates if there is anything inside them
+		if len(layoutMatches) > 0 {
+			// parseGlob() will parse the template definition
+			templateSet, err = templateSet.ParseGlob("./templates/*.layout.tmpl")
+			if err != nil {
+				return myCache, err
+			}
+		}
+		myCache[name] = templateSet
+
 	}
 
-	tmpl = templatesCache[temp]
-	err = tmpl.Execute(write, nil)
-	if err != nil {
-		log.Println(err)
-	}
+	return myCache, nil
+
 }
